@@ -483,3 +483,122 @@ xlabel('samples relative to R peak')
 ylabel('ECG (mV)')
 title('Box Breathing - All heartbeats overlaid')
 grid on
+
+%% Step 7: Heart Rate Analysis (R-R intervals, histogram, boxchart)
+
+% --- RESTING ---
+R_times_rest = t_rest(locs_rest_final);
+
+% limit to time window 120–130 s
+mask_rest = (R_times_rest >= 120) & (R_times_rest <= 130);
+R_times_rest_win = R_times_rest(mask_rest);
+
+% R-R intervals
+RR_rest = diff(R_times_rest_win);
+
+% heart rate (BPM)
+HR_rest = 60 ./ RR_rest;
+
+% --- EXERCISE ---
+R_times_ex = t_ex(locs_ex_final);
+
+mask_ex = (R_times_ex >= 120) & (R_times_ex <= 130);
+R_times_ex_win = R_times_ex(mask_ex);
+
+RR_ex = diff(R_times_ex_win);
+HR_ex = 60 ./ RR_ex;
+
+% --- HISTOGRAMS ---
+figure
+subplot(2,1,1)
+histogram(HR_rest)
+xlabel('Heart Rate (BPM)')
+ylabel('Count')
+title('Resting Heart Rate Distribution')
+
+subplot(2,1,2)
+histogram(HR_ex)
+xlabel('Heart Rate (BPM)')
+ylabel('Count')
+title('Exercise Heart Rate Distribution')
+
+
+% --- BOXCHART ---
+combinedData = [HR_rest; HR_ex];
+group = [ones(length(HR_rest),1); 2*ones(length(HR_ex),1)];
+
+figure
+boxchart(group, combinedData)
+xlabel('Condition')
+ylabel('Heart Rate (BPM)')
+title('Rest vs Exercise Heart Rate')
+xticklabels({'Rest','Exercise'})
+
+%% Step 8: Pulse Speed (R vs T)
+
+% Find T peaks (lower threshold)
+[pks_T, locs_T] = findpeaks(ecg_rest, ...
+    'MinPeakHeight', 0.1, ...
+    'MinPeakDistance', MinPeakDistance);
+
+R_speeds = [];
+T_speeds = [];
+
+% --- R peaks ---
+for i = 1:length(locs_rest_final)
+    idx = locs_rest_final(i);
+    
+    if idx > 10 && idx < length(ecg_rest)-10
+        speed = abs(ecg_rest(idx+10) - ecg_rest(idx-10));
+        R_speeds(end+1) = speed;
+    end
+end
+
+% --- T peaks ---
+for i = 1:length(locs_T)
+    idx = locs_T(i);
+    
+    if idx > 10 && idx < length(ecg_rest)-10
+        speed = abs(ecg_rest(idx+10) - ecg_rest(idx-10));
+        T_speeds(end+1) = speed;
+    end
+end
+
+% --- Histogram ---
+figure
+histogram(R_speeds)
+hold on
+histogram(T_speeds)
+legend('R Peaks','T Peaks')
+xlabel('Voltage Change (mV)')
+ylabel('Count')
+title('Pulse Speed: R vs T')
+
+%% Step 9: Two-sample t-tests
+
+% --- Rest vs Exercise ---
+[h1, p1] = ttest2(HR_rest, HR_ex);
+
+if h1 == 1
+    fprintf('Rest vs Exercise: Reject null hypothesis (different)\n')
+else
+    fprintf('Rest vs Exercise: Cannot reject null hypothesis\n')
+end
+
+% --- Rest vs Rest (two time windows) ---
+R_times_w1 = R_times_rest(R_times_rest >= 100 & R_times_rest <= 110);
+R_times_w2 = R_times_rest(R_times_rest >= 120 & R_times_rest <= 130);
+
+RR1 = diff(R_times_w1);
+RR2 = diff(R_times_w2);
+
+HR1 = 60 ./ RR1;
+HR2 = 60 ./ RR2;
+
+[h2, p2] = ttest2(HR1, HR2);
+
+if h2 == 1
+    fprintf('Rest vs Rest: Reject null hypothesis\n')
+else
+    fprintf('Rest vs Rest: Cannot reject null hypothesis (similar)\n')
+end
