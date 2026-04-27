@@ -7,21 +7,26 @@
 
 clear; clc; close all
 
+% Create Results folder if it doesn't exist
+if ~exist('Results', 'dir')
+    mkdir('Results')
+end
+
 %% Step 1: Load Data
 % Each .mat file has a variable b1 with 3 columns:
-%   col 1 = time (s), col 2 = ECG (mV), col 3 = HR from software (ignore)
+% col 1 = time (s), col 2 = ECG (mV), col 3 = HR from software (ignore)
 % All 3 files use the same name b1, so I pull out the columns before
 % loading the next one or it gets overwritten.
 
-load('Resting.mat')
+load('Data//Resting.mat')
 t_rest = b1(:,1);
 ecg_rest = b1(:,2);
 
-load('Exercise.mat')
+load('Data//Exercise.mat')
 t_ex = b1(:,1);
 ecg_ex = b1(:,2);
 
-load('BoxBreathing.mat')
+load('Data//BoxBreathing.mat')
 t_bb = b1(:,1);
 ecg_bb = b1(:,2);
 
@@ -39,6 +44,7 @@ xlabel('time (s)')
 ylabel('ECG (mV)')
 title('Resting')
 fontsize(gcf, 16, 'points')
+saveas(gcf, 'Results/Fig1_Resting_signal.png')
 
 % Exercise
 figure
@@ -49,6 +55,7 @@ xlabel('time (s)')
 ylabel('ECG (mV)')
 title('Exercise')
 fontsize(gcf, 16, 'points')
+saveas(gcf, 'Results/Fig2_Exercise_signal.png')
 
 % Box Breathing
 figure
@@ -59,6 +66,7 @@ xlabel('time (s)')
 ylabel('ECG (mV)')
 title('Box Breathing')
 fontsize(gcf, 16, 'points')
+saveas(gcf, 'Results/Fig3_BoxBreathing_signal.png')
 
 % All three conditions on one figure, 60 seconds each (3x1 subplot)
 figure
@@ -84,6 +92,7 @@ ylim([-0.2 0.8])
 xlabel('time (s)')
 ylabel('ECG (mV)')
 title('Box Breathing')
+saveas(gcf, 'Results/Fig4_AllConditions_60s.png')
 
 %% Step 3: Pick findpeaks parameters
 % We want to detect only the R peak of each heartbeat, not the T or P waves.
@@ -128,6 +137,7 @@ xlabel('time (s)')
 ylabel('ECG (mV)')
 title('Resting with peaks (default findpeaks)')
 hold off
+saveas(gcf, 'Results/Fig5_Resting_defaultPeaks.png')
 
 % Exercise data - 10 seconds around time 120-130
 figure
@@ -150,6 +160,7 @@ xlabel('time (s)')
 ylabel('ECG (mV)')
 title('Exercise with peaks (default findpeaks)')
 hold off
+saveas(gcf, 'Results/Fig6_Exercise_defaultPeaks.png')
 
 %% Step 5: Redo with appropriate MinPeakHeight and MinPeakDistance
 % Now use the tuned parameters to detect only R peaks
@@ -176,6 +187,7 @@ xlabel('time (s)')
 ylabel('ECG (mV)')
 title('Resting with R peaks only')
 hold off
+saveas(gcf, 'Results/Fig7_Resting_tunedPeaks.png')
 
 % Exercise data with tuned parameters
 figure
@@ -199,6 +211,7 @@ xlabel('time (s)')
 ylabel('ECG (mV)')
 title('Exercise with R peaks only')
 hold off
+saveas(gcf, 'Results/Fig8_Exercise_tunedPeaks.png')
 
 %% Step 6: Overlay all heartbeats on the same graph using trigger (R peak)
 % Plot each heartbeat centered on the R peak with semi-transparent lines
@@ -231,6 +244,7 @@ xlabel('samples relative to R peak')
 ylabel('ECG (mV)')
 title('Resting - All heartbeats overlaid')
 grid on
+saveas(gcf, 'Results/Fig9_Resting_overlaid.png')
 
 % EXERCISE - overlay all heartbeats
 figure
@@ -251,6 +265,7 @@ xlabel('samples relative to R peak')
 ylabel('ECG (mV)')
 title('Exercise - All heartbeats overlaid')
 grid on
+saveas(gcf, 'Results/Fig10_Exercise_overlaid.png')
 
 % BOX BREATHING - overlay all heartbeats
 figure
@@ -271,10 +286,11 @@ xlabel('samples relative to R peak')
 ylabel('ECG (mV)')
 title('Box Breathing - All heartbeats overlaid')
 grid on
+saveas(gcf, 'Results/Fig11_BoxBreathing_overlaid.png')
 
 %% Step 7: Heart Rate Analysis (R-R intervals, histogram, boxchart)
 
-% --- RESTING ---
+% RESTING
 R_times_rest = t_rest(locs_rest_final);
 
 % limit to time window 120–130 s
@@ -289,7 +305,7 @@ RR_rest = diff(R_times_rest_win);
 % heart rate (BPM)
 HR_rest = 60 ./ RR_rest;
 
-% --- EXERCISE ---
+% EXERCISE
 R_times_ex = t_ex(locs_ex_final);
 
 mask_ex = (R_times_ex >= 120) & (R_times_ex <= 130);
@@ -298,7 +314,7 @@ R_times_ex_win = R_times_ex(mask_ex);
 RR_ex = diff(R_times_ex_win);
 HR_ex = 60 ./ RR_ex;
 
-% --- HISTOGRAMS ---
+% HISTOGRAMS
 figure
 subplot(2,1,1)
 histogram(HR_rest, 'Normalization', 'probability')
@@ -312,9 +328,10 @@ xlabel('Heart Rate (BPM)')
 ylabel('Probability')
 title('Exercise Heart Rate Distribution')
 sgtitle('Heart Rate: Rest vs Exercise')
+saveas(gcf, 'Results/Fig12_HR_histograms.png')
 
 
-% --- BOXCHART ---
+% BOXCHART
 combinedData = [HR_rest; HR_ex];
 group = [ones(length(HR_rest),1); 2*ones(length(HR_ex),1)];
 
@@ -324,6 +341,7 @@ xlabel('Condition')
 ylabel('Heart Rate (BPM)')
 title('Rest vs Exercise Heart Rate')
 xticklabels({'Rest','Exercise'})
+saveas(gcf, 'Results/Fig13_HR_boxchart.png')
 
 %% Step 8: Pulse Speed (R vs T)
 
@@ -335,7 +353,7 @@ xticklabels({'Rest','Exercise'})
 R_speeds = [];
 T_speeds = [];
 
-% --- R peaks ---
+% R peaks 
 for i = 1:length(locs_rest_final)
     idx = locs_rest_final(i);
     
@@ -345,7 +363,7 @@ for i = 1:length(locs_rest_final)
     end
 end
 
-% --- T peaks ---
+% T peaks
 for i = 1:length(locs_T)
     idx = locs_T(i);
     
@@ -355,7 +373,7 @@ for i = 1:length(locs_T)
     end
 end
 
-% --- Histogram ---
+% Histogram
 figure
 histogram(R_speeds)
 hold on
@@ -364,10 +382,11 @@ legend('R Peaks','T Peaks')
 xlabel('Voltage Change (mV)')
 ylabel('Count')
 title('Pulse Speed: R vs T')
+saveas(gcf, 'Results/Fig14_PulseSpeed_RT.png')
 
 %% Step 9: Two-sample t-tests
 
-% --- Rest vs Exercise ---
+% Rest vs Exercise
 [h1, p1] = ttest2(HR_rest, HR_ex);
 
 if h1 == 1
@@ -376,7 +395,7 @@ else
     fprintf('Rest vs Exercise: Cannot reject null hypothesis\n')
 end
 
-% --- Rest vs Rest (two time windows) ---
+% Rest vs Rest (two time windows)
 R_times_w1 = R_times_rest(R_times_rest >= 100 & R_times_rest <= 110);
 R_times_w2 = R_times_rest(R_times_rest >= 120 & R_times_rest <= 130);
 
